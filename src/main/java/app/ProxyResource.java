@@ -48,9 +48,9 @@ public class ProxyResource {
 
     @Inject
     HttpServletRequest forwardRequest;
-    
+
     @GET
-   @Path("/healthcheck")
+    @Path("/healthcheck")
     public String healthcheck() {
         return targetName + ":" + targetUrl;
     }

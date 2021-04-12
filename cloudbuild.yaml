@@ -1,8 +1,9 @@
 steps:
-- name: 'gcr.io/cloud-builders/mvn'
-  args: ['package']
+- name: 'gcr.io/support-tools-299121/graalvm-builder'
+  args: ['./mvnw', 'package', '-Pnative']
+  timeout: 3600s
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/kuda-proxy', '-f', 'src/main/docker/Dockerfile.jvm', '.']
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/kuda-proxy', '-f', 'src/main/docker/Dockerfile.native-distroless', '.']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'gcr.io/$PROJECT_ID/kuda-proxy']
 images:
