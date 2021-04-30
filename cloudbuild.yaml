@@ -1,10 +1,15 @@
 steps:
-- name: 'gcr.io/support-tools-299121/graalvm-builder'
+- name: 'gcr.io/slide2vr/graalvm-builder'
+  id: Build:Java
+  entrypoint: 'bash'
   args: ['./mvnw', 'package', '-Pnative']
-  timeout: 3600s
 - name: 'gcr.io/cloud-builders/docker'
+  id: Build:Image
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/kuda-proxy', '-f', 'src/main/docker/Dockerfile.native-distroless', '.']
 - name: 'gcr.io/cloud-builders/docker'
+  id: Ship:Push
   args: ['push', 'gcr.io/$PROJECT_ID/kuda-proxy']
 images:
 - gcr.io/$PROJECT_ID/kuda-proxy
+options:
+ machineType: 'E2_HIGHCPU_8'

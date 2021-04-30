@@ -52,7 +52,8 @@ public class ProxyResource {
     @GET
     @Path("/healthcheck")
     public String healthcheck() {
-        return targetName + ":" + targetUrl;
+        var datastore = Service.datastore();
+        return targetName + ":" + targetUrl + ":" + datastore.getClass().getName();
     }
 
     @POST
@@ -88,7 +89,7 @@ public class ProxyResource {
     HttpResponse callTarget(HttpServletRequest forwardRequest, String targetMethod, String query) throws InterruptedException, IOException {
         var path = "/?" + query;
         var url = targetUrl + path;
-
+        System.out.println("url:" + url);
         return DistributedTracer.trace().isTrace(isTrace).apply(targetName, forwardRequest,
                 "",
                 "GET",

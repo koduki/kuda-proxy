@@ -7,11 +7,11 @@
 #
 # Then, build the image with:
 #
-# docker build -f src/main/docker/Dockerfile.native-distroless -t quarkus/kuda-proxy .
+# docker build -f src/main/docker/Dockerfile.native-distroless -t quarkus/example-gcp-graal2 .
 #
 # Then run the container using:
 #
-# docker run -i --rm -p 8080:8080 quarkus/kuda-proxy
+# docker run -i --rm -p 8080:8080 quarkus/example-gcp-graal2
 #
 ###
 FROM quay.io/quarkus/quarkus-distroless-image:1.0
