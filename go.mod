@@ -3,6 +3,7 @@ module kuda
 go 1.16
 
 require (
+	cloud.google.com/go v0.81.0 // indirect
 	cloud.google.com/go/storage v1.15.0 // indirect
 	github.com/creack/pty v1.1.13 // indirect
 	github.com/fatih/color v1.12.0 // indirect

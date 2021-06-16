@@ -1,24 +1,17 @@
 package main
 
 import (
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/json"
-	"encoding/pem"
+	"context"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"strconv"
-	"time"
+
+	"google.golang.org/api/idtoken"
 
 	"github.com/labstack/echo/v4"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	"golang.org/x/oauth2/jws"
 
 	"kuda/cmd/middleware"
 )
@@ -53,83 +46,6 @@ func ParseArgs() {
 	flag.Parse()
 }
 
-func ParseKey(key []byte) *rsa.PrivateKey {
-	block, _ := pem.Decode(key)
-	if block != nil {
-		key = block.Bytes
-	}
-	parsedKey, err := x509.ParsePKCS8PrivateKey(key)
-	if err != nil {
-		parsedKey, err = x509.ParsePKCS1PrivateKey(key)
-		if err != nil {
-			return nil
-		}
-	}
-	parsed, ok := parsedKey.(*rsa.PrivateKey)
-	if !ok {
-		return nil
-	}
-	return parsed
-}
-
-func genGCPIdToken(targetAudience string) string {
-	authUrl := "https://www.googleapis.com/oauth2/v4/token"
-
-	// ADC
-	credentials, err := google.FindDefaultCredentials(oauth2.NoContext, authUrl)
-	config, err := google.JWTConfigFromJSON(credentials.JSON)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	// JWS
-	iat := time.Now()
-	exp := iat.Add(time.Hour)
-	cs := &jws.ClaimSet{
-		Iss: config.Email,
-		Sub: config.Email,
-		Aud: authUrl,
-		Iat: iat.Unix(),
-		Exp: exp.Unix(),
-	}
-	hdr := &jws.Header{
-		Algorithm: "RS256",
-		Typ:       "JWT",
-		KeyID:     config.PrivateKeyID,
-	}
-	privateKey := ParseKey(config.PrivateKey)
-
-	// Request Google OAuth server to get Token ID
-	cs.PrivateClaims = map[string]interface{}{"target_audience": targetAudience}
-	msg, err := jws.Encode(hdr, cs, privateKey)
-	if err != nil {
-		fmt.Println(fmt.Errorf("google: could not encode JWT: %v", err))
-	}
-
-	f := url.Values{
-		"grant_type": {"urn:ietf:params:oauth:grant-type:jwt-bearer"},
-		"assertion":  {msg},
-	}
-	res, err := http.PostForm(authUrl, f)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	body, err := io.ReadAll(res.Body)
-	defer res.Body.Close()
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	type resIdToken struct {
-		IdToken string `json:"id_token"`
-	}
-	id := &resIdToken{}
-	json.Unmarshal(body, id)
-
-	return id.IdToken
-}
-
 func Route(e *echo.Echo) {
 	e.Use(middleware.Logger)
 
@@ -140,16 +56,17 @@ func Route(e *echo.Echo) {
 			hparams = append(hparams, k+"="+v[0])
 		}
 
-		client := &http.Client{}
+		url := "https://kuda-target-dnb6froqha-uc.a.run.app/healthcheck"
+
+		ctx := context.Background()
+		client, err := idtoken.NewClient(ctx, url)
 		if err != nil {
-			log.Fatal(err)
+			return fmt.Errorf("idtoken.NewClient: %v", err)
 		}
 
-		url := "https://kuda-target-dnb6froqha-uc.a.run.app/healthcheck"
 		req, _ := http.NewRequest("GET", url, nil)
 		req.Header = c.Request().Header.Clone()
 		req.Header.Add("X-Forwarded-For", c.Request().RemoteAddr)
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", genGCPIdToken(url)))
 
 		res, _ := client.Do(req)
 
