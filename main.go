@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
+	"golang.org/x/xerrors"
 	"google.golang.org/api/idtoken"
 
 	"github.com/labstack/echo/v4"
@@ -20,6 +22,13 @@ type (
 	Response struct {
 		Message string `json:"message"`
 		Date    string `json:"date"`
+	}
+)
+
+type (
+	Configuration struct {
+		TargetURL    string
+		UseGoogleJWT bool
 	}
 )
 
@@ -46,8 +55,37 @@ func ParseArgs() {
 	flag.Parse()
 }
 
+func NewClient(TargetURL string, UseGoogleJWT bool) (*http.Client, error) {
+	if UseGoogleJWT {
+		ctx := context.Background()
+		return idtoken.NewClient(ctx, TargetURL)
+	} else {
+		// x := 1
+		// if true {
+		// 	x = x * 5
+
+		// }
+
+		// y := 1 / (x - 5)
+		// fmt.Println(y)
+
+		return &http.Client{
+			Timeout: time.Second * 10,
+			// }, nil
+		}, xerrors.Errorf("stacktrace: %w", echo.NewHTTPError(http.StatusUnauthorized, "Please provide valid credentials"))
+		// }, echo.NewHTTPError(http.StatusUnauthorized, "Please provide valid credentials")
+
+	}
+}
+
 func Route(e *echo.Echo) {
+	e.HTTPErrorHandler = middleware.HTTPErrorHandler
 	e.Use(middleware.Logger)
+
+	config := Configuration{
+		TargetURL:    "https://www.google.com", //https://kuda-target-dnb6froqha-uc.a.run.app",
+		UseGoogleJWT: false,
+	}
 
 	e.GET("*", func(c echo.Context) (err error) {
 
@@ -56,20 +94,18 @@ func Route(e *echo.Echo) {
 			hparams = append(hparams, k+"="+v[0])
 		}
 
-		url := "https://kuda-target-dnb6froqha-uc.a.run.app/healthcheck"
-
-		ctx := context.Background()
-		client, err := idtoken.NewClient(ctx, url)
+		client, err := NewClient(config.TargetURL, config.UseGoogleJWT)
 		if err != nil {
-			return fmt.Errorf("idtoken.NewClient: %v", err)
+			// return echo.NewHTTPError(http.StatusUnauthorized, "Please provide valid credentials")
+
+			return err
 		}
 
-		req, _ := http.NewRequest("GET", url, nil)
+		req, _ := http.NewRequest("GET", config.TargetURL, nil)
 		req.Header = c.Request().Header.Clone()
 		req.Header.Add("X-Forwarded-For", c.Request().RemoteAddr)
 
 		res, _ := client.Do(req)
-
 		return c.Stream(res.StatusCode, res.Header.Get("Content-Type"), res.Body)
 	})
 }
