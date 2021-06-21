@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"time"
 
-	"golang.org/x/xerrors"
 	"google.golang.org/api/idtoken"
 
 	"github.com/labstack/echo/v4"
@@ -71,8 +70,8 @@ func NewClient(TargetURL string, UseGoogleJWT bool) (*http.Client, error) {
 
 		return &http.Client{
 			Timeout: time.Second * 10,
-			// }, nil
-		}, xerrors.Errorf("stacktrace: %w", echo.NewHTTPError(http.StatusUnauthorized, "Please provide valid credentials"))
+		}, nil
+		// }, xerrors.Errorf("stacktrace: %w", echo.NewHTTPError(http.StatusUnauthorized, "Please provide valid credentials"))
 		// }, echo.NewHTTPError(http.StatusUnauthorized, "Please provide valid credentials")
 
 	}
@@ -83,8 +82,8 @@ func Route(e *echo.Echo) {
 	e.Use(middleware.Logger)
 
 	config := Configuration{
-		TargetURL:    "https://www.google.com", //https://kuda-target-dnb6froqha-uc.a.run.app",
-		UseGoogleJWT: false,
+		TargetURL:    "https://kuda-target-dnb6froqha-uc.a.run.app",
+		UseGoogleJWT: true,
 	}
 
 	e.GET("*", func(c echo.Context) (err error) {
@@ -96,8 +95,6 @@ func Route(e *echo.Echo) {
 
 		client, err := NewClient(config.TargetURL, config.UseGoogleJWT)
 		if err != nil {
-			// return echo.NewHTTPError(http.StatusUnauthorized, "Please provide valid credentials")
-
 			return err
 		}
 

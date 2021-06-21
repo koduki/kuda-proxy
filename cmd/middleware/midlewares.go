@@ -12,6 +12,39 @@ import (
 	"golang.org/x/xerrors"
 )
 
+type errorString struct {
+	s     string
+	frame xerrors.Frame
+}
+
+func logging(c echo.Context, callError func() error) {
+	log := make(map[string]interface{})
+
+	log["time"] = time.Now().Format("2006-01-02T00:00:00")
+	log["method"] = c.Request().Method
+	log["uri"] = c.Request().RequestURI
+	log["headers"] = c.Request().Header
+	log["query-params"] = c.QueryParams()
+
+	err := callError()
+	status := c.Response().Status
+	log["status"] = status
+	if status == 200 {
+		log["severity"] = "INFO"
+	} else {
+		log["severity"] = "ERROR"
+		log["errors"] = fmt.Sprintf("%+v\n", err)
+	}
+
+	// print log
+	json, e := json.Marshal(log)
+	if e != nil {
+		c.Error(e)
+	}
+	fmt.Println(string(json))
+
+}
+
 func ErrorHandler4Panic(c echo.Context) {
 	if err := recover(); err != nil {
 		log.Printf("[ERROR] %s\n", err)
@@ -20,18 +53,12 @@ func ErrorHandler4Panic(c echo.Context) {
 			if !ok {
 				break
 			}
-			log.Printf("======> %d: %v:%d", depth, file, line)
-
+			log.Printf("\t %d: %v:%d", depth, file, line)
 		}
 
-		err2 := xerrors.New("error in main method")
-		fmt.Printf("%+v\n", err2)
-
-		err3 := xerrors.Errorf("error in main method: %w", err)
-
-		fmt.Printf("%+v\n", err3)
-
-		c.Error(echo.NewHTTPError(http.StatusInternalServerError, err))
+		herr := echo.NewHTTPError(http.StatusInternalServerError, err)
+		logging(c, func() error { return herr })
+		c.Error(herr)
 	}
 }
 
@@ -47,35 +74,38 @@ func Logger(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		defer ErrorHandler4Panic(c)
 
-		log := make(map[string]interface{})
+		// log := make(map[string]interface{})
 
-		log["time"] = time.Now().Format("2006-01-02T00:00:00")
-		log["method"] = c.Request().Method
-		log["uri"] = c.Request().RequestURI
-		log["headers"] = c.Request().Header
-		log["query-params"] = c.QueryParams()
+		// log["time"] = time.Now().Format("2006-01-02T00:00:00")
+		// log["method"] = c.Request().Method
+		// log["uri"] = c.Request().RequestURI
+		// log["headers"] = c.Request().Header
+		// log["query-params"] = c.QueryParams()
 
 		// exec
-		herr := next(c)
-		if herr != nil {
-			c.Error(herr)
-		}
+		logging(c, func() error {
+			herr := next(c)
+			if herr != nil {
+				c.Error(herr)
+			}
+			return herr
+		})
 
-		status := c.Response().Status
-		log["status"] = status
-		if status == 200 {
-			log["severity"] = "INFO"
-		} else {
-			log["severity"] = "ERROR"
-			log["errors"] = fmt.Sprintf("%+v\n", herr)
-		}
+		// status := c.Response().Status
+		// log["status"] = status
+		// if status == 200 {
+		// 	log["severity"] = "INFO"
+		// } else {
+		// 	log["severity"] = "ERROR"
+		// 	log["errors"] = fmt.Sprintf("%+v\n", herr)
+		// }
 
-		// print log
-		json, err := json.Marshal(log)
-		if err != nil {
-			c.Error(err)
-		}
-		fmt.Println(string(json))
+		// // print log
+		// json, err := json.Marshal(log)
+		// if err != nil {
+		// 	c.Error(err)
+		// }
+		// fmt.Println(string(json))
 
 		return nil
 	}
