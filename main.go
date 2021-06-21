@@ -59,21 +59,9 @@ func NewClient(TargetURL string, UseGoogleJWT bool) (*http.Client, error) {
 		ctx := context.Background()
 		return idtoken.NewClient(ctx, TargetURL)
 	} else {
-		// x := 1
-		// if true {
-		// 	x = x * 5
-
-		// }
-
-		// y := 1 / (x - 5)
-		// fmt.Println(y)
-
 		return &http.Client{
 			Timeout: time.Second * 10,
 		}, nil
-		// }, xerrors.Errorf("stacktrace: %w", echo.NewHTTPError(http.StatusUnauthorized, "Please provide valid credentials"))
-		// }, echo.NewHTTPError(http.StatusUnauthorized, "Please provide valid credentials")
-
 	}
 }
 

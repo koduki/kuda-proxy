@@ -12,11 +12,6 @@ import (
 	"golang.org/x/xerrors"
 )
 
-type errorString struct {
-	s     string
-	frame xerrors.Frame
-}
-
 func logging(c echo.Context, callError func() error) {
 	log := make(map[string]interface{})
 
@@ -74,15 +69,6 @@ func Logger(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		defer ErrorHandler4Panic(c)
 
-		// log := make(map[string]interface{})
-
-		// log["time"] = time.Now().Format("2006-01-02T00:00:00")
-		// log["method"] = c.Request().Method
-		// log["uri"] = c.Request().RequestURI
-		// log["headers"] = c.Request().Header
-		// log["query-params"] = c.QueryParams()
-
-		// exec
 		logging(c, func() error {
 			herr := next(c)
 			if herr != nil {
@@ -90,22 +76,6 @@ func Logger(next echo.HandlerFunc) echo.HandlerFunc {
 			}
 			return herr
 		})
-
-		// status := c.Response().Status
-		// log["status"] = status
-		// if status == 200 {
-		// 	log["severity"] = "INFO"
-		// } else {
-		// 	log["severity"] = "ERROR"
-		// 	log["errors"] = fmt.Sprintf("%+v\n", herr)
-		// }
-
-		// // print log
-		// json, err := json.Marshal(log)
-		// if err != nil {
-		// 	c.Error(err)
-		// }
-		// fmt.Println(string(json))
 
 		return nil
 	}
