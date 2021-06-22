@@ -12,7 +12,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
-func logging(c echo.Context, callError func() error) {
+func logging(c echo.Context, callback func() error) {
 	log := make(map[string]interface{})
 
 	log["time"] = time.Now().Format("2006-01-02T00:00:00")
@@ -21,7 +21,7 @@ func logging(c echo.Context, callError func() error) {
 	log["headers"] = c.Request().Header
 	log["query-params"] = c.QueryParams()
 
-	err := callError()
+	err := callback()
 	status := c.Response().Status
 	log["status"] = status
 	if status == 200 {
