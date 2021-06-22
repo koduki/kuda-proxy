@@ -12,22 +12,16 @@ import (
 
 	"google.golang.org/api/idtoken"
 
-	"github.com/labstack/echo/v4"
-
+	"kuda/cmd/config"
 	"kuda/cmd/middleware"
+
+	"github.com/labstack/echo/v4"
 )
 
 type (
 	Response struct {
 		Message string `json:"message"`
 		Date    string `json:"date"`
-	}
-)
-
-type (
-	Configuration struct {
-		TargetURL    string
-		UseGoogleJWT bool
 	}
 )
 
@@ -69,24 +63,19 @@ func Route(e *echo.Echo) {
 	e.HTTPErrorHandler = middleware.HTTPErrorHandler
 	e.Use(middleware.Logger)
 
-	config := Configuration{
-		TargetURL:    "https://kuda-target-dnb6froqha-uc.a.run.app",
-		UseGoogleJWT: true,
+	config, err := config.Load()
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
 	}
 
 	e.GET("*", func(c echo.Context) (err error) {
-
-		var hparams []string
-		for k, v := range c.QueryParams() {
-			hparams = append(hparams, k+"="+v[0])
-		}
-
 		client, err := NewClient(config.TargetURL, config.UseGoogleJWT)
 		if err != nil {
 			return err
 		}
 
-		req, _ := http.NewRequest("GET", config.TargetURL, nil)
+		req, _ := http.NewRequest("GET", config.TargetURL+c.Request().RequestURI, nil)
 		req.Header = c.Request().Header.Clone()
 		req.Header.Add("X-Forwarded-For", c.Request().RemoteAddr)
 
