@@ -21,6 +21,12 @@ func logging(c echo.Context, callback func() error) {
 	log["headers"] = c.Request().Header
 	log["query-params"] = c.QueryParams()
 
+	// if requestBody, e := io.ReadAll(c.Request().Body); e != nil {
+	// 	c.Error(e)
+	// } else {
+	// 	log["body-params"] = string(requestBody)
+	// }
+
 	err := callback()
 	status := c.Response().Status
 	log["status"] = status
@@ -32,12 +38,11 @@ func logging(c echo.Context, callback func() error) {
 	}
 
 	// print log
-	json, e := json.Marshal(log)
-	if e != nil {
+	if json, e := json.Marshal(log); e != nil {
 		c.Error(e)
+	} else {
+		fmt.Println(string(json))
 	}
-	fmt.Println(string(json))
-
 }
 
 func ErrorHandler4Panic(c echo.Context) {

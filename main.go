@@ -74,12 +74,17 @@ func Route(e *echo.Echo) {
 		if err != nil {
 			return err
 		}
+		req, err := http.NewRequest("GET", config.TargetURL+c.Request().RequestURI, c.Request().Body)
+		if err != nil {
+			return err
+		}
 
-		req, _ := http.NewRequest("GET", config.TargetURL+c.Request().RequestURI, c.Request().Body)
 		req.Header = c.Request().Header.Clone()
 		req.Header.Add("X-Forwarded-For", c.Request().RemoteAddr)
-
-		res, _ := client.Do(req)
+		res, err := client.Do(req)
+		if err != nil {
+			return err
+		}
 		return c.Stream(res.StatusCode, res.Header.Get("Content-Type"), res.Body)
 	})
 
@@ -89,11 +94,17 @@ func Route(e *echo.Echo) {
 			return err
 		}
 
-		req, _ := http.NewRequest("POST", config.TargetURL+c.Request().RequestURI, c.Request().Body)
+		req, err := http.NewRequest("POST", config.TargetURL+c.Request().RequestURI, c.Request().Body)
+		if err != nil {
+			return err
+		}
+
 		req.Header = c.Request().Header.Clone()
 		req.Header.Add("X-Forwarded-For", c.Request().RemoteAddr)
-
-		res, _ := client.Do(req)
+		res, err := client.Do(req)
+		if err != nil {
+			return err
+		}
 		return c.Stream(res.StatusCode, res.Header.Get("Content-Type"), res.Body)
 	})
 
@@ -102,12 +113,17 @@ func Route(e *echo.Echo) {
 		if err != nil {
 			return err
 		}
+		req, err := http.NewRequest("DELETE", config.TargetURL+c.Request().RequestURI, c.Request().Body)
+		if err != nil {
+			return err
+		}
 
-		req, _ := http.NewRequest("DELETE", config.TargetURL+c.Request().RequestURI, c.Request().Body)
 		req.Header = c.Request().Header.Clone()
 		req.Header.Add("X-Forwarded-For", c.Request().RemoteAddr)
-
-		res, _ := client.Do(req)
+		res, err := client.Do(req)
+		if err != nil {
+			return err
+		}
 		return c.Stream(res.StatusCode, res.Header.Get("Content-Type"), res.Body)
 	})
 }
