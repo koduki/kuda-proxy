@@ -1,15 +1,19 @@
 steps:
-- name: 'gcr.io/slide2vr/graalvm-builder'
-  id: Build:Java
-  entrypoint: 'bash'
-  args: ['./mvnw', 'package', '-Pnative']
-- name: 'gcr.io/cloud-builders/docker'
-  id: Build:Image
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/kuda-proxy', '-f', 'src/main/docker/Dockerfile.native-distroless', '.']
-- name: 'gcr.io/cloud-builders/docker'
-  id: Ship:Push
-  args: ['push', 'gcr.io/$PROJECT_ID/kuda-proxy']
+  - name: gcr.io/k8s-skaffold/pack
+    args:
+      - build
+      - 'gcr.io/$PROJECT_ID/$_SERVICE_NAME'
+      - '--builder=gcr.io/buildpacks/builder:v1'
+      - '--path=.'
+    id: Buildpack
+    entrypoint: pack
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - 'gcr.io/$PROJECT_ID/$_SERVICE_NAME'
+    id: Push
 images:
-- gcr.io/$PROJECT_ID/kuda-proxy
-options:
- machineType: 'E2_HIGHCPU_8'
+  - 'gcr.io/$PROJECT_ID/$_SERVICE_NAME'
+
+substitutions:
+  _SERVICE_NAME: kuda-proxy
