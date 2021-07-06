@@ -12,25 +12,8 @@ steps:
       - push
       - 'gcr.io/$PROJECT_ID/$_SERVICE_NAME'
     id: Push
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
-    args:
-      - run
-      - services
-      - update
-      - $_SERVICE_NAME
-      - '--platform=managed'
-      - '--image=gcr.io/$PROJECT_ID/$_SERVICE_NAME'
-      - '--region=$_DEPLOY_REGION'
-    id: Deploy
-    entrypoint: gcloud
 images:
   - 'gcr.io/$PROJECT_ID/$_SERVICE_NAME'
-options:
-  substitutionOption: ALLOW_LOOSE
+
 substitutions:
   _SERVICE_NAME: kuda-proxy
-  _DEPLOY_REGION: us-central1
-tags:
-  - gcp-cloud-build-deploy-cloud-run
-  - gcp-cloud-build-deploy-cloud-run-managed
-  - kuda-proxy

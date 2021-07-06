@@ -18,9 +18,10 @@ import (
 	"google.golang.org/api/workflowexecutions/v1"
 
 	"kuda/cmd/config"
-	"kuda/cmd/middleware"
+	"kuda/cmd/mymiddleware"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 type (
@@ -66,13 +67,20 @@ func NewClient(TargetURL string, UseGoogleJWT bool) (*http.Client, error) {
 
 // Route is the main routing function for the server
 func Route(e *echo.Echo) {
-	e.HTTPErrorHandler = middleware.HTTPErrorHandler
-	e.Use(middleware.Logger)
-
 	config, err := config.Load()
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
+	}
+
+	e.HTTPErrorHandler = mymiddleware.HTTPErrorHandler
+	e.Use(mymiddleware.Logger)
+
+	if config.CorsTarget != "" {
+		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+			AllowOrigins: []string{"*"},
+			AllowMethods: []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodOptions, http.MethodPost, http.MethodDelete},
+		}))
 	}
 
 	e.POST("flow", func(c echo.Context) (err error) {
@@ -119,6 +127,8 @@ func Route(e *echo.Echo) {
 			return err
 		}
 
+		req.Header.Add("Traceparent", c.Request().Header.Get("Traceparent"))
+		req.Header.Add("X-Cloud-Trace-Context", c.Request().Header.Get("X-Cloud-Trace-Context"))
 		req.Header.Add("X-Forwarded-For", c.Request().RemoteAddr)
 		res, err := client.Do(req)
 		if err != nil {
@@ -223,16 +233,29 @@ func ExecWorklow(c echo.Context, workflowID string, input string) (*workflowexec
 	ctx := context.Background()
 	workflowExecService, err := workflowexecutions.NewService(ctx)
 	if err != nil {
-		return nil, nil
+		return nil, err
+	}
+
+	tracecontext := c.Request().Header.Get("X-Cloud-Trace-Context")
+	log.Println("Trace Context:" + tracecontext)
+
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(input), &data); err != nil {
+		fmt.Println(err)
+	}
+	data["tracecontext"] = tracecontext
+	parsedInput, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
 	}
 
 	exe, err := workflowExecService.Projects.Locations.Workflows.Executions.Create(
 		workflowID, &workflowexecutions.Execution{
 			Name:     workflowID,
-			Argument: input,
+			Argument: string(parsedInput),
 		}).Do()
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	return exe, nil
